@@ -1,0 +1,11 @@
+{
+    "name": "Continuous Integration",
+    "description": "For each push and pull request, build and test the project using Maven.",
+    "categories": [
+        "Java"
+    ],
+    "filePatterns": [
+        "pom.xml$"
+    ]
+}
+
