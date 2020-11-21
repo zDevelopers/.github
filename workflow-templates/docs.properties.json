@@ -1,0 +1,12 @@
+{
+    "name": "Build documentation to dev.zcraft.fr/docs",
+    "description": "For each push to the default branch, build the documentation and push it to the website repository.",
+    "iconName": "octicon book",
+    "categories": [
+        "Java", "Maven"
+    ],
+    "filePatterns": [
+        "pom.xml$"
+    ]
+}
+
