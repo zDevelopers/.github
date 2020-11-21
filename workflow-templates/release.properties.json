@@ -1,0 +1,12 @@
+{
+    "name": "Release",
+    "description": "For each version tag, build the project; then create a release with the JAR.",
+    "iconName": "octicon tag",
+    "categories": [
+        "Java", "Maven"
+    ],
+    "filePatterns": [
+        "pom.xml$"
+    ]
+}
+

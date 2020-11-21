@@ -1,0 +1,12 @@
+{
+    "name": "Release and package",
+    "description": "For each version tag, build the project; then create a release with the JAR and push this JAR to GitHub Packages.",
+    "iconName": "octicon package-dependents",
+    "categories": [
+        "Java", "Maven"
+    ],
+    "filePatterns": [
+        "pom.xml$"
+    ]
+}
+
