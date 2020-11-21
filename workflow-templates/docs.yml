@@ -1,7 +1,9 @@
 name: Build documentation
+
 on:
   push:
     branches: [ $default-branch ]
+
 jobs:
   javadoc:
     runs-on: ubuntu-latest
