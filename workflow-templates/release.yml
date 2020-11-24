@@ -2,8 +2,8 @@
 # To trigger, create a tag (not a release) with semantic
 # versioning (the tag must start with a v).
 #
-# git tag -a v0.2 -m "Version 0.2"
-# git push --tags
+# git tag -am "Version 0.2" v0.2
+# git push && git push --tags
 #
 # This workflow will automatically:
 # - build the project using Maven;
@@ -17,6 +17,9 @@ on:
     tags:
       - 'v*'
 
+env:
+  JAVA_VERSION: 8
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -24,12 +27,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Setup Java
+      - name: Set up Java ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v1
         with:
-          java-version: 8
+          java-version: ${{ env.JAVA_VERSION }}
 
-      - uses: actions/cache@v2
+      - name: Cache all the things
+        uses: actions/cache@v2
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
@@ -42,6 +46,23 @@ jobs:
           script: return context.repo.repo
           result-encoding: string
 
+      - name: Build ${{ steps.project-name.outputs.result }}
+        id: maven-build
+        run: |
+          mvn -B clean install
+
+          # Maven shade keeps the unshaded JAR under target/original-vvv.jar
+          # We don't want to put this unshaded JAR in the release because it wouldn't
+          # work on a server.
+          JAR_PATH=$(ls ./target/*.jar | grep -vE "^./[^/]+/original-" | tail -n 1)
+          JAR_NAME=$(basename $JAR_PATH)
+
+          echo "::set-output name=jar_path::$JAR_PATH"
+          echo "::set-output name=jar_name::$JAR_NAME"
+        env:
+          GIT_REF_NAME: ${{ github.ref }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create new GitHub Release
         id: create-release
         uses: actions/create-release@v1
@@ -53,13 +74,12 @@ jobs:
           draft: true
           prerelease: false
 
-      - name: Upload GitHub Release Asset
+      - name: Add ${{ steps.project-name.outputs.result }} JAR to GitHub Release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create-release.outputs.upload_url }}
-          asset_path: ${{ steps.maven-publish.outputs.jar_path }}
-          asset_name: ${{ steps.maven-publish.outputs.jar_name }}
+          asset_path: ${{ steps.maven-build.outputs.jar_path }}
+          asset_name: ${{ steps.maven-build.outputs.jar_name }}
           asset_content_type: application/java-archive
-

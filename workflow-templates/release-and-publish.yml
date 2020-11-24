@@ -19,6 +19,9 @@ on:
     tags:
       - 'v*'
 
+env:
+  JAVA_VERSION: 8
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -26,12 +29,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Setup Java
+      - name: Set up Java ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v1
         with:
-          java-version: 8
+          java-version: ${{ env.JAVA_VERSION }}
 
-      - uses: actions/cache@v2
+      - name: Cache all the things
+        uses: actions/cache@v2
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
@@ -44,7 +48,7 @@ jobs:
           script: return context.repo.repo
           result-encoding: string
 
-      - name: Publish to GitHub Packages
+      - name: Build and publish ${{ steps.project-name.outputs.result }} to GitHub Packages
         id: maven-publish
         run: |
           TAG_NAME=${GIT_REF_NAME##*/}
@@ -52,8 +56,12 @@ jobs:
 
           mvn -B deploy "-Drevision=$REVISION_NAME"
 
-          JAR_PATH=$(ls ./target/*.jar | tail -n 1)
+          # Maven shade keeps the unshaded JAR under target/original-vvv.jar
+          # We don't want to put this unshaded JAR in the release because it wouldn't
+          # work on a server.
+          JAR_PATH=$(ls ./target/*.jar | grep -vE "^./[^/]+/original-" | tail -n 1)
           JAR_NAME=$(basename $JAR_PATH)
+
           echo "::set-output name=jar_path::$JAR_PATH"
           echo "::set-output name=jar_name::$JAR_NAME"
         env:
@@ -71,7 +79,7 @@ jobs:
           draft: true
           prerelease: false
 
-      - name: Upload GitHub Release Asset
+      - name: Add ${{ steps.project-name.outputs.result }} JAR to GitHub Release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -80,4 +88,3 @@ jobs:
           asset_path: ${{ steps.maven-publish.outputs.jar_path }}
           asset_name: ${{ steps.maven-publish.outputs.jar_name }}
           asset_content_type: application/java-archive
-
